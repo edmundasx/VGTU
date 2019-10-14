@@ -1,0 +1,53 @@
+# depslib dependency file v1.0
+1558667665 source:c:\users\user\desktop\kursinistetris\kursinistetris\src\menu.cpp
+	"Menu.h"
+	"Logika.h"
+	<iostream>
+	<Overload.h>
+
+1558667350 c:\users\user\desktop\kursinistetris\kursinistetris\include\menu.h
+	<iostream>
+
+1558666584 c:\users\user\desktop\kursinistetris\kursinistetris\include\logika.h
+	"Blokai.h"
+	<iomanip>
+	<iostream>
+	<vector>
+	<random>
+	<conio.h>
+	<Overload.h>
+
+1558663463 source:c:\users\user\desktop\kursinistetris\kursinistetris\src\abstractclassmenu.cpp
+	"AbstractClassMenu.h"
+	<iostream>
+
+1558665436 c:\users\user\desktop\kursinistetris\kursinistetris\include\abstractclassmenu.h
+	"Menu.h"
+	<iostream>
+
+1558667438 source:c:\users\user\desktop\kursinistetris\kursinistetris\main.cpp
+	<iostream>
+	"Menu.h"
+	"AbstractClassMenu.h"
+	"Overload.h"
+
+1558667294 source:c:\users\user\desktop\kursinistetris\kursinistetris\src\logika.cpp
+	"Logika.h"
+	"Blokai.h"
+	<iomanip>
+	<iostream>
+	<vector>
+	<random>
+	<conio.h>
+	<Overload.h>
+
+1558663722 c:\users\user\desktop\kursinistetris\kursinistetris\include\blokai.h
+
+1558663705 source:c:\users\user\desktop\kursinistetris\kursinistetris\src\blokai.cpp
+	"Blokai.h"
+
+1558666928 c:\users\user\desktop\kursinistetris\kursinistetris\include\overload.h
+
+1558667044 source:c:\users\user\desktop\kursinistetris\kursinistetris\src\overload.cpp
+	"Overload.h"
+
