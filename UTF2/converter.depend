@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1569978036 source:c:\users\user\desktop\converter\main.cpp
+	<iostream>
+	<fstream>
+	<sstream>
+

@@ -1,0 +1,21 @@
+# depslib dependency file v1.0
+1569358166 source:c:\users\user\desktop\turing\main.cpp
+	<iostream>
+	<thread>
+	<iomanip>
+	<conio.h>
+	"read.h"
+
+1569263129 source:c:\users\user\desktop\turing\read.cpp
+	"read.h"
+
+1569263129 c:\users\user\desktop\turing\read.h
+	<iostream>
+	<fstream>
+	<vector>
+	<string>
+	<sstream>
+	<iterator>
+	<windows.h>
+	<mutex>
+
