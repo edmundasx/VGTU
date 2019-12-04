@@ -21,8 +21,10 @@ class dvikryptis
      void Spausdinti();
      void Tikrinti(sarasas *);
      void Prideti(sarasas *, int *);
+     void PridetiPries(int, int *);
      int Salinti(int);
      int Ieskoti(int);
+     int IeskotiTerpti(int sk);
      void menu();
      void text();
 };
@@ -37,6 +39,7 @@ dvikryptis::~dvikryptis()
       delete(kint);
     }
 };
+
 int main(){
  string failopav;
  char skaicius;
@@ -93,6 +96,13 @@ void dvikryptis::Prideti(sarasas *kint, int *sk)
         pradzia->kairys=kint2;
         pradzia=kint2;
     }
+   else if(kint==pabaiga)
+    {
+        kint2->kairys=pabaiga;
+        kint2->desinys=NULL;
+        pabaiga->desinys=kint2;
+        pabaiga=kint2;
+    }
     else
     {
         kint2->desinys=kint;
@@ -100,6 +110,26 @@ void dvikryptis::Prideti(sarasas *kint, int *sk)
         (kint->kairys)->desinys=kint2;
         kint->kairys=kint2;
     }
+}
+void dvikryptis::PridetiPries(int sk, int *sk2)
+{
+
+    sarasas *kint=pabaiga;
+    while(kint!=NULL)
+    {
+    if(*kint->elementas==sk)
+    {
+            sarasas *kint2;
+    kint2=new sarasas;
+    kint2->elementas=sk2;
+        kint2->desinys=kint;
+        kint2->kairys=kint->kairys;
+        (kint->kairys)->desinys=kint2;
+        kint->kairys=kint2;
+        cout<<"Elementas Pridetas!"<<endl;
+    }
+    kint=kint->kairys;
+}
 }
 int dvikryptis::Salinti(int sk)
 {
@@ -141,6 +171,7 @@ int dvikryptis::Ieskoti(int sk)
         cout<<"Elementas nerastas."<<endl;
         }
 }
+
 void dvikryptis::Tikrinti(sarasas*)
 {
 sarasas *kint=pabaiga;
@@ -158,10 +189,9 @@ void dvikryptis::menu()
     int elementas;
     char skaicius;
     char select;
+    int select2;
     system("CLS");
     text();
-
-
     cin>>skaicius;
     switch(skaicius)
 {
@@ -194,7 +224,27 @@ case '3':
     system("CLS");
     cout<<"Iveskite elementa kuri norite prideti:";
     cin>>elementas;
-    Salinti(elementas);
+    cout<<"Kur norite prideti?"<<endl;
+    cout<<"1.Pradzioje"<<endl;
+    cout<<"2.Gale"<<endl;
+    cout<<"3.Pries kita elementa"<<endl;
+    cin>>select;
+    if(select=='1')
+    {
+            Prideti(GetPabaiga(),&elementas);
+    }
+    else if(select=='2')
+    {
+            Prideti(GetPradzia(),&elementas);
+    }
+    else if(select=='3')
+    {
+        cout<<"Pries kuri elementa norite prideti?"<<endl;
+        cin>>select2;
+        PridetiPries(select2,&elementas);
+    }
+
+
     cout<<"Testi darba?[T/N]"<<endl;
     cin>>select;
     if(select=='t')
@@ -235,14 +285,12 @@ case '5':
 }
 void dvikryptis::text()
 {
-
 cout<<"Pasirinkite:"<<endl;
 cout<<"1):Spausdinti"<<endl;
 cout<<"2):Salinti"<<endl;
 cout<<"3):Prideti"<<endl;
 cout<<"4):Ieskoti"<<endl;
 cout<<"5):Tikrinti ar tuscias"<<endl;
-
 }
 void dvikryptis::Spausdinti()
 {
@@ -254,3 +302,4 @@ void dvikryptis::Spausdinti()
     }
     cout<<endl;
 }
+
