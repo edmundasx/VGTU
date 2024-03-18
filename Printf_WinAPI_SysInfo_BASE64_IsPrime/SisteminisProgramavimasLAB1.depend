@@ -1,0 +1,10 @@
+# depslib dependency file v1.0
+1691603588 source:c:\users\user\desktop\sisteminisprogramavimaslab1\main.cpp
+	<iostream>
+	<cstdio>
+	<windows.h>
+	<wincrypt.h>
+	<vector>
+	<iomanip>
+	<cmath>
+
